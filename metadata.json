@@ -1,0 +1,7 @@
+{
+  "name": "AI Waste Classifier",
+  "description": "An interactive web application to classify waste using a webcam or uploaded images. It provides detailed reports on how to handle different types of waste, designed to be friendly for young users.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

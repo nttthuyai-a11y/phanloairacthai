@@ -1,8 +1,6 @@
-
 import React, { useState, useMemo } from 'react';
-import type { Prediction } from '../types';
+import type { Prediction, WasteCategory } from '../types';
 import { REPORT_DATA } from '../constants';
-import type { ReportDataMap, WasteCategory } from '../types';
 
 interface ReportProps {
     predictions: Prediction[];
@@ -37,9 +35,9 @@ const Report: React.FC<ReportProps> = ({ predictions, confidenceThreshold }) => 
     const shouldShowReport = topPrediction && (topPrediction.probability * 100) >= confidenceThreshold && topPrediction.className !== 'nothing';
     
     const reportKey = topPrediction?.className as Exclude<WasteCategory, 'nothing'>;
-    const reportData = shouldShowReport ? REPORT_DATA[reportKey] : null;
+    const reportData = (topPrediction && topPrediction.className !== 'nothing') ? REPORT_DATA[reportKey] : null;
 
-    const getHelperText = () => {
+    const getHelperContent = () => {
         if (!topPrediction || predictions.length === 0) {
             return "Hãy đưa rác vào camera hoặc tải ảnh lên để AI phân tích.";
         }
@@ -49,48 +47,66 @@ const Report: React.FC<ReportProps> = ({ predictions, confidenceThreshold }) => 
         if ((topPrediction.probability * 100) < confidenceThreshold) {
             return <span className="text-red-600 font-bold">Độ tin cậy thấp ({ (topPrediction.probability * 100).toFixed(0) }%)! AI chưa chắc chắn, không thể tạo báo cáo.</span>;
         }
-        return "";
+        return null;
     }
+    
+    const helperContent = getHelperContent();
 
-    if (!shouldShowReport) {
-        const helperText = getHelperText();
-        if (!helperText) return null;
-        
-        return (
-            <div className="mt-10 p-6 bg-yellow-50 border-2 border-dashed border-yellow-300 rounded-xl text-center">
-                 <p className="text-yellow-800 font-semibold">{helperText}</p>
-            </div>
-        );
+    // Do not render the component if there's nothing to show yet.
+    if (!shouldShowReport && !helperContent) {
+        return null;
     }
-
-    if (!reportData) return null;
 
     return (
-        <div id="report-container" className="mt-10 p-4 md:p-6 bg-amber-50 border-2 border-amber-400 rounded-2xl shadow-lg">
-            <div className="summary-header mb-6 pb-4 border-b-2 border-amber-300">
-                <h2 className="font-poppins text-2xl md:text-3xl font-bold text-red-700">Báo cáo Chi tiết từ AI</h2>
-                <div className="mt-2 text-lg">
-                    <p><strong className="text-green-700">[Phân loại]</strong> <span className="font-semibold capitalize">{topPrediction.className}</span></p>
-                    <div className="text-gray-700" dangerouslySetInnerHTML={{ __html: `<strong class='text-amber-700'>[Đánh giá]</strong> ${reportData.summary}` }} />
-                </div>
+        <div className="mt-10 grid">
+            {/* Helper Text Area */}
+            <div
+                className={`col-start-1 row-start-1 transition-opacity duration-300 ease-in-out ${
+                    shouldShowReport ? 'opacity-0' : 'opacity-100'
+                }`}
+            >
+                {helperContent && (
+                    <div className="p-6 bg-yellow-50 border-2 border-dashed border-yellow-300 rounded-xl text-center">
+                        <p className="text-yellow-800 font-semibold">{helperContent}</p>
+                    </div>
+                )}
             </div>
+            
+            {/* Report Area */}
+            <div
+                className={`col-start-1 row-start-1 transition-opacity duration-300 ease-in-out ${
+                    shouldShowReport ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                }`}
+            >
+                {reportData && topPrediction && (
+                    <div id="report-container" className="p-4 md:p-6 bg-amber-50 border-2 border-amber-400 rounded-2xl shadow-lg">
+                        <div className="summary-header mb-6 pb-4 border-b-2 border-amber-300">
+                            <h2 className="font-poppins text-2xl md:text-3xl font-bold text-red-700">Báo cáo Chi tiết từ AI</h2>
+                            <div className="mt-2 text-lg">
+                                <p><strong className="text-green-700">[Phân loại]</strong> <span className="font-semibold capitalize">{topPrediction.className}</span></p>
+                                <div className="text-gray-700" dangerouslySetInnerHTML={{ __html: `<strong class='text-amber-700'>[Đánh giá]</strong> ${reportData.summary}` }} />
+                            </div>
+                        </div>
 
-            <div className="tab-menu flex gap-1">
-                <TabButton active={activeTab === 'thu_gom'} onClick={() => setActiveTab('thu_gom')}>
-                    1. Thu Gom & Xử lý
-                </TabButton>
-                <TabButton active={activeTab === 'tac_hai'} onClick={() => setActiveTab('tac_hai')}>
-                    2. Tác hại & Lợi ích
-                </TabButton>
-                <TabButton active={activeTab === 'tai_su_dung'} onClick={() => setActiveTab('tai_su_dung')}>
-                    3. Tái sử dụng
-                </TabButton>
-            </div>
+                        <div className="tab-menu flex gap-1">
+                            <TabButton active={activeTab === 'thu_gom'} onClick={() => setActiveTab('thu_gom')}>
+                                1. Thu Gom & Xử lý
+                            </TabButton>
+                            <TabButton active={activeTab === 'tac_hai'} onClick={() => setActiveTab('tac_hai')}>
+                                2. Tác hại & Lợi ích
+                            </TabButton>
+                            <TabButton active={activeTab === 'tai_su_dung'} onClick={() => setActiveTab('tai_su_dung')}>
+                                3. Tái sử dụng
+                            </TabButton>
+                        </div>
 
-            <div>
-                <TabPane active={activeTab === 'thu_gom'} content={reportData.thu_gom} />
-                <TabPane active={activeTab === 'tac_hai'} content={reportData.tac_hai} />
-                <TabPane active={activeTab === 'tai_su_dung'} content={reportData.tai_su_dung} />
+                        <div>
+                            <TabPane active={activeTab === 'thu_gom'} content={reportData.thu_gom} />
+                            <TabPane active={activeTab === 'tac_hai'} content={reportData.tac_hai} />
+                            <TabPane active={activeTab === 'tai_su_dung'} content={reportData.tai_su_dung} />
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
